@@ -1,0 +1,46 @@
+.header {
+  background: linear-gradient(135deg, var(--brand-dark) 0%, var(--brand-mid) 100%);
+  padding: 0 24px;
+  box-shadow: 0 2px 12px rgba(0,0,0,.2);
+}
+
+.header-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  height: 84px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.logo-area {
+  display: flex;
+  align-items: center;
+}
+
+/* White background pill so the logo is legible on the dark header */
+.logo-img {
+  height: 56px;
+  width: auto;
+  background: #fff;
+  border-radius: 8px;
+  padding: 8px 16px;
+  display: block;
+}
+
+.header-nav { display: flex; align-items: center; gap: 20px; }
+
+.nav-link {
+  color: rgba(255,255,255,.85);
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: color .15s;
+}
+
+.nav-link:hover { color: var(--brand-accent); }
+
+@media (max-width: 480px) {
+  .logo-img { height: 36px; padding: 4px 8px; }
+  .nav-link { font-size: 0.82rem; }
+}

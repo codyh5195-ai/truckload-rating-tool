@@ -1,0 +1,129 @@
+.quote-form { display: flex; flex-direction: column; gap: 24px; }
+
+/* ── Field ─────────────────────────────────────────────────────────────────── */
+.field-group {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.field { display: flex; flex-direction: column; gap: 6px; }
+
+.label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: 0.2px;
+}
+
+.input {
+  height: 46px;
+  padding: 0 14px;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  font-size: 1rem;
+  font-family: inherit;
+  color: var(--text-primary);
+  background: #fafafa;
+  transition: border-color .15s, box-shadow .15s;
+  outline: none;
+}
+
+.input:focus {
+  border-color: var(--brand-mid);
+  box-shadow: 0 0 0 3px rgba(26,74,138,.12);
+  background: #fff;
+}
+
+.input:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.field--error .input { border-color: #ef4444; }
+
+.field-error {
+  font-size: 0.78rem;
+  color: #dc2626;
+  font-weight: 500;
+}
+
+/* ── Equipment cards ────────────────────────────────────────────────────────── */
+.equipment-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.equipment-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 14px 8px;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: border-color .15s, background .15s, box-shadow .15s;
+  background: #fafafa;
+  text-align: center;
+  user-select: none;
+}
+
+.equipment-card input[type="radio"] { display: none; }
+
+.equipment-card:hover {
+  border-color: var(--brand-mid);
+  background: var(--brand-light);
+}
+
+.equipment-card--selected {
+  border-color: var(--brand-mid);
+  background: var(--brand-light);
+  box-shadow: 0 0 0 3px rgba(26,74,138,.12);
+}
+
+.equipment-label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.3;
+}
+
+/* ── Submit button ─────────────────────────────────────────────────────────── */
+.submit-btn {
+  height: 52px;
+  background: linear-gradient(135deg, var(--brand-dark) 0%, var(--brand-mid) 100%);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: opacity .15s, transform .1s;
+  box-shadow: 0 4px 14px rgba(15,45,82,.3);
+  letter-spacing: 0.2px;
+}
+
+.submit-btn:hover:not(:disabled) { opacity: .9; transform: translateY(-1px); }
+.submit-btn:active:not(:disabled) { transform: translateY(0); }
+.submit-btn:disabled { opacity: .6; cursor: not-allowed; }
+
+.btn-loading { display: flex; align-items: center; justify-content: center; gap: 10px; }
+
+/* ── Spinner ────────────────────────────────────────────────────────────────── */
+.spinner {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border: 2.5px solid rgba(255,255,255,.35);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Responsive ─────────────────────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .field-group { grid-template-columns: 1fr; }
+  .equipment-grid { grid-template-columns: 1fr; }
+}

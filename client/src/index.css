@@ -1,0 +1,21 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --brand-dark:   #0f2d52;
+  --brand-mid:    #1a4a8a;
+  --brand-accent: #e8a020;
+  --brand-light:  #eaf1fb;
+  --text-primary: #111827;
+  --text-muted:   #6b7280;
+  --border:       #d1d5db;
+  --radius:       12px;
+  --shadow-sm:    0 1px 3px rgba(0,0,0,.08);
+  --shadow-md:    0 4px 16px rgba(0,0,0,.12);
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: #f3f6fb;
+  color: var(--text-primary);
+  min-height: 100vh;
+}
