@@ -1,9 +1,8 @@
 import './QuoteResult.css';
 
 const EQUIPMENT_LABELS = {
-  VAN:     'Dry Van',
-  REEFER:  'Reefer',
-  FLATBED: 'Flatbed',
+  VAN:                'Dry Van',
+  STRAIGHT_BOX_TRUCK: 'Straight Box Truck',
 };
 
 function fmt(n) {

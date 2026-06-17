@@ -2,9 +2,8 @@ import { useState } from 'react';
 import './QuoteForm.css';
 
 const EQUIPMENT_OPTIONS = [
-  { value: 'VAN',     label: 'Dry Van' },
-  { value: 'REEFER',  label: 'Reefer (Temperature Controlled)' },
-  { value: 'FLATBED', label: 'Flatbed' },
+  { value: 'VAN',               label: 'Dry Van' },
+  { value: 'STRAIGHT_BOX_TRUCK', label: 'Straight Box Truck' },
 ];
 
 const ZIP_RE = /^\d{5}$/;

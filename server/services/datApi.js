@@ -21,9 +21,7 @@ const DAT_API_BASE  = process.env.DAT_API_BASE_URL || 'https://api.dat.com/rate-
 
 // Equipment type labels used by the DAT API
 const EQUIPMENT_MAP = {
-  VAN:     'VAN',
-  REEFER:  'REEFER',
-  FLATBED: 'FLATBED',
+  VAN: 'VAN',
 };
 
 // ─── Token cache ─────────────────────────────────────────────────────────────
@@ -97,23 +95,20 @@ async function fetchLiveRate({ originZip, destinationZip, equipmentType }) {
   };
 }
 
+// ─── Mock mileage helper ───────────────────────────────────────────────────────
+// Derives a pseudo-distance from the ZIP codes so results feel consistent.
+function mockMiles(originZip, destinationZip) {
+  const zipDiff = Math.abs(parseInt(originZip) - parseInt(destinationZip));
+  return Math.min(2500, Math.max(150, Math.round((zipDiff % 2000) + 150)));
+}
+
 // ─── Mock response (used when DAT_USE_MOCK=true) ──────────────────────────────
-// Generates plausible spot-market rates so you can develop/demo without credentials.
-function fetchMockRate({ originZip, destinationZip, equipmentType }) {
-  // Derive a pseudo-distance from the ZIP codes so results feel consistent
-  const zipDiff    = Math.abs(parseInt(originZip) - parseInt(destinationZip));
-  const miles      = Math.min(2500, Math.max(150, Math.round((zipDiff % 2000) + 150)));
-
-  const baseCpm = {           // $/mile baseline per equipment
-    VAN:     2.20,
-    REEFER:  2.65,
-    FLATBED: 2.45,
-  }[equipmentType] ?? 2.20;
-
-  // Small random variance (±8 %) so repeated calls don't look robotic
-  const variance      = 1 + (Math.random() * 0.16 - 0.08);
-  const rateMileUsd   = +(baseCpm * variance).toFixed(2);
-  const totalRateUsd  = Math.round(rateMileUsd * miles);
+function fetchMockRate({ originZip, destinationZip }) {
+  const miles     = mockMiles(originZip, destinationZip);
+  const baseCpm   = 2.20;
+  const variance  = 1 + (Math.random() * 0.16 - 0.08);
+  const rateMileUsd  = +(baseCpm * variance).toFixed(2);
+  const totalRateUsd = Math.round(rateMileUsd * miles);
 
   return Promise.resolve({ totalRateUsd, rateMileUsd, miles, isMock: true });
 }
@@ -126,4 +121,14 @@ async function getSpotRate(params) {
   return fetchLiveRate(params);
 }
 
-module.exports = { getSpotRate };
+// Returns just the mileage for a route — used by Straight Box Truck pricing.
+// Mock: derives from ZIP arithmetic. Live: calls DAT with VAN to get routing miles.
+async function getMilesForRoute({ originZip, destinationZip }) {
+  if (process.env.DAT_USE_MOCK === 'true') {
+    return mockMiles(originZip, destinationZip);
+  }
+  const result = await fetchLiveRate({ originZip, destinationZip, equipmentType: 'VAN' });
+  return result.miles;
+}
+
+module.exports = { getSpotRate, getMilesForRoute };

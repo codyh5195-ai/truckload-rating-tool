@@ -1,10 +1,12 @@
 const express = require('express');
 const router = express.Router();
-const { getSpotRate } = require('../services/datApi');
+const { getSpotRate, getMilesForRoute } = require('../services/datApi');
 
-const MARKUP = 1.25; // 25% brokerage margin applied before customer sees the quote
+const MARKUP = 1.25; // 25% brokerage margin applied before customer sees the DAT-based quote
 
-const VALID_EQUIPMENT = ['VAN', 'REEFER', 'FLATBED'];
+const STRAIGHT_BOX_RATE_PER_MILE = 2.50;
+
+const VALID_EQUIPMENT = ['VAN', 'STRAIGHT_BOX_TRUCK'];
 
 const ZIP_RE = /^\d{5}$/;
 
@@ -24,6 +26,22 @@ router.post('/quote', async (req, res) => {
   }
 
   try {
+    if (equipmentType === 'STRAIGHT_BOX_TRUCK') {
+      const miles = await getMilesForRoute({ originZip, destinationZip });
+      const customerQuote = Math.round(miles * STRAIGHT_BOX_RATE_PER_MILE);
+
+      return res.json({
+        customerQuote,
+        ratePerMile: STRAIGHT_BOX_RATE_PER_MILE,
+        miles,
+        currency: 'USD',
+        equipmentType,
+        originZip,
+        destinationZip,
+        isMock: process.env.DAT_USE_MOCK === 'true',
+      });
+    }
+
     const datRate = await getSpotRate({ originZip, destinationZip, equipmentType });
 
     // Apply markup — the raw DAT rate is intentionally never returned to the client
