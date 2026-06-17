@@ -10,7 +10,7 @@ function fmt(n) {
 }
 
 export default function QuoteResult({ quote }) {
-  const { customerQuote, ratePerMile, miles, equipmentType, originZip, destinationZip, isMock } = quote;
+  const { customerQuote, miles, equipmentType, originZip, destinationZip, isMock } = quote;
 
   return (
     <div className="result" role="region" aria-label="Quote result">
@@ -28,11 +28,6 @@ export default function QuoteResult({ quote }) {
       <div className="quote-total">{fmt(customerQuote)}</div>
 
       <div className="result-meta">
-        <div className="meta-item">
-          <span className="meta-label">Rate / Mile</span>
-          <span className="meta-value">${ratePerMile.toFixed(2)}</span>
-        </div>
-        <div className="meta-divider" />
         <div className="meta-item">
           <span className="meta-label">Est. Miles</span>
           <span className="meta-value">{miles.toLocaleString()}</span>

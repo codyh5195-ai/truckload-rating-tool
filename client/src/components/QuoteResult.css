@@ -51,7 +51,7 @@
   background: var(--brand-light);
   border: 1px solid #c7d9f0;
   border-radius: 10px;
-  padding: 14px 24px;
+  padding: 20px 40px;
   width: 100%;
   justify-content: space-around;
   margin-bottom: 16px;
@@ -61,27 +61,29 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 3px;
+  gap: 6px;
+  flex: 1;
 }
 
 .meta-label {
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.6px;
+  letter-spacing: 0.8px;
   color: var(--text-muted);
 }
 
 .meta-value {
-  font-size: 1.05rem;
+  font-size: 1.2rem;
   font-weight: 700;
   color: var(--brand-dark);
 }
 
 .meta-divider {
   width: 1px;
-  height: 36px;
+  height: 44px;
   background: #c7d9f0;
+  flex-shrink: 0;
 }
 
 /* ── Lane ───────────────────────────────────────────────────────────────────── */
@@ -128,6 +130,5 @@
 
 @media (max-width: 480px) {
   .quote-total { font-size: 2.5rem; }
-  .result-meta { flex-direction: column; gap: 12px; padding: 16px; }
-  .meta-divider { width: 80%; height: 1px; }
+  .result-meta { padding: 16px 20px; }
 }
