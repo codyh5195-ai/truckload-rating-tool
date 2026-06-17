@@ -1,5 +1,6 @@
 const DAT_TOKEN_URL = process.env.DAT_TOKEN_URL   || 'https://identity.dat.com/access/oauth/token';
 const DAT_API_BASE  = process.env.DAT_API_BASE_URL || 'https://api.dat.com/rate-view/v3';
+const ORS_API_BASE  = 'https://api.openrouteservice.org/v2';
 
 const MARKUP                    = 1.25;
 const STRAIGHT_BOX_RATE_PER_MILE = 2.50;
@@ -29,9 +30,49 @@ async function getAccessToken() {
   return cachedToken;
 }
 
-function mockMiles(originZip, destinationZip) {
-  const zipDiff = Math.abs(parseInt(originZip) - parseInt(destinationZip));
-  return Math.min(2500, Math.max(150, Math.round((zipDiff % 2000) + 150)));
+// ─── ORS routing ─────────────────────────────────────────────────────────────
+async function zipToCoords(zip) {
+  const res = await fetch(`https://api.zippopotam.us/us/${zip}`, {
+    signal: AbortSignal.timeout(5_000),
+  });
+  if (!res.ok) {
+    const err = new Error(`ZIP code ${zip} could not be located.`);
+    err.status = 400;
+    throw err;
+  }
+  const data  = await res.json();
+  const place = data.places[0];
+  return [parseFloat(place.longitude), parseFloat(place.latitude)]; // [lng, lat] — ORS convention
+}
+
+async function getRoadMiles(originZip, destinationZip) {
+  const [originCoords, destCoords] = await Promise.all([
+    zipToCoords(originZip),
+    zipToCoords(destinationZip),
+  ]);
+
+  const res = await fetch(`${ORS_API_BASE}/directions/driving-car`, {
+    method:  'POST',
+    headers: {
+      Authorization:  process.env.ORS_API_KEY,
+      'Content-Type': 'application/json',
+      Accept:         'application/json, application/geo+json',
+    },
+    body: JSON.stringify({
+      coordinates: [originCoords, destCoords],
+      units:       'mi',
+    }),
+    signal: AbortSignal.timeout(10_000),
+  });
+
+  if (!res.ok) {
+    const err = new Error('Routing service unavailable');
+    err.status = 502;
+    throw err;
+  }
+
+  const data = await res.json();
+  return Math.round(data.routes[0].summary.distance);
 }
 
 async function fetchLiveRate(originZip, destinationZip, equipmentType) {
@@ -96,9 +137,7 @@ module.exports = async function handler(req, res) {
 
   try {
     if (equipmentType === 'STRAIGHT_BOX_TRUCK') {
-      const miles = useMock
-        ? mockMiles(originZip, destinationZip)
-        : (await fetchLiveRate(originZip, destinationZip, 'VAN')).miles;
+      const miles = await getRoadMiles(originZip, destinationZip);
 
       return res.json({
         customerQuote: Math.round(miles * STRAIGHT_BOX_RATE_PER_MILE),
@@ -108,19 +147,18 @@ module.exports = async function handler(req, res) {
         equipmentType,
         originZip,
         destinationZip,
-        isMock:        useMock,
+        isMock:        false,
       });
     }
 
     // VAN
     if (useMock) {
-      const miles        = mockMiles(originZip, destinationZip);
-      const variance     = 1 + (Math.random() * 0.16 - 0.08);
-      const rateMileUsd  = +(2.20 * variance).toFixed(2);
-      const totalRateUsd = Math.round(rateMileUsd * miles);
+      const miles       = await getRoadMiles(originZip, destinationZip);
+      const variance    = 1 + (Math.random() * 0.16 - 0.08);
+      const rateMileUsd = +(2.20 * variance).toFixed(2);
 
       return res.json({
-        customerQuote: Math.round(totalRateUsd * MARKUP),
+        customerQuote: Math.round(miles * rateMileUsd * MARKUP),
         ratePerMile:   +(rateMileUsd * MARKUP).toFixed(2),
         miles,
         currency:      'USD',
@@ -146,10 +184,14 @@ module.exports = async function handler(req, res) {
   } catch (err) {
     console.error('Rate fetch error:', err.message);
 
+    if (err.status === 400) {
+      return res.status(400).json({ error: err.message });
+    }
+
     if (err.status === 404) {
       return res.status(404).json({ error: 'No rate data found for this lane. Try a different origin or destination.' });
     }
 
-    return res.status(502).json({ error: 'Unable to retrieve rate at this time. Please try again shortly.' });
+    return res.status(502).json({ error: 'Unable to calculate mileage for this route. Please try again.' });
   }
 };

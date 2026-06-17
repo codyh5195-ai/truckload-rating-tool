@@ -18,6 +18,7 @@ const axios = require('axios');
 
 const DAT_TOKEN_URL = process.env.DAT_TOKEN_URL || 'https://identity.dat.com/access/oauth/token';
 const DAT_API_BASE  = process.env.DAT_API_BASE_URL || 'https://api.dat.com/rate-view/v3';
+const ORS_API_BASE  = 'https://api.openrouteservice.org/v2';
 
 // Equipment type labels used by the DAT API
 const EQUIPMENT_MAP = {
@@ -95,22 +96,53 @@ async function fetchLiveRate({ originZip, destinationZip, equipmentType }) {
   };
 }
 
-// ─── Mock mileage helper ───────────────────────────────────────────────────────
-// Derives a pseudo-distance from the ZIP codes so results feel consistent.
-function mockMiles(originZip, destinationZip) {
-  const zipDiff = Math.abs(parseInt(originZip) - parseInt(destinationZip));
-  return Math.min(2500, Math.max(150, Math.round((zipDiff % 2000) + 150)));
+// ─── ORS routing ─────────────────────────────────────────────────────────────
+async function zipToCoords(zip) {
+  try {
+    const res   = await axios.get(`https://api.zippopotam.us/us/${zip}`, { timeout: 5_000 });
+    const place = res.data.places[0];
+    return [parseFloat(place.longitude), parseFloat(place.latitude)]; // [lng, lat] — ORS convention
+  } catch (axiosErr) {
+    if (axiosErr.response?.status === 404) {
+      const err = new Error(`ZIP code ${zip} could not be located.`);
+      err.status = 400;
+      throw err;
+    }
+    throw axiosErr;
+  }
+}
+
+async function getRoadMiles(originZip, destinationZip) {
+  const [originCoords, destCoords] = await Promise.all([
+    zipToCoords(originZip),
+    zipToCoords(destinationZip),
+  ]);
+
+  const res = await axios.post(
+    `${ORS_API_BASE}/directions/driving-car`,
+    { coordinates: [originCoords, destCoords], units: 'mi' },
+    {
+      headers: {
+        Authorization:  process.env.ORS_API_KEY,
+        'Content-Type': 'application/json',
+        Accept:         'application/json, application/geo+json',
+      },
+      timeout: 10_000,
+    }
+  );
+
+  return Math.round(res.data.routes[0].summary.distance);
 }
 
 // ─── Mock response (used when DAT_USE_MOCK=true) ──────────────────────────────
-function fetchMockRate({ originZip, destinationZip }) {
-  const miles     = mockMiles(originZip, destinationZip);
-  const baseCpm   = 2.20;
-  const variance  = 1 + (Math.random() * 0.16 - 0.08);
+async function fetchMockRate({ originZip, destinationZip }) {
+  const miles        = await getRoadMiles(originZip, destinationZip);
+  const baseCpm      = 2.20;
+  const variance     = 1 + (Math.random() * 0.16 - 0.08);
   const rateMileUsd  = +(baseCpm * variance).toFixed(2);
   const totalRateUsd = Math.round(rateMileUsd * miles);
 
-  return Promise.resolve({ totalRateUsd, rateMileUsd, miles, isMock: true });
+  return { totalRateUsd, rateMileUsd, miles, isMock: true };
 }
 
 // ─── Public export ─────────────────────────────────────────────────────────────
@@ -121,14 +153,9 @@ async function getSpotRate(params) {
   return fetchLiveRate(params);
 }
 
-// Returns just the mileage for a route — used by Straight Box Truck pricing.
-// Mock: derives from ZIP arithmetic. Live: calls DAT with VAN to get routing miles.
+// Returns ORS road miles for a route — used by Straight Box Truck pricing.
 async function getMilesForRoute({ originZip, destinationZip }) {
-  if (process.env.DAT_USE_MOCK === 'true') {
-    return mockMiles(originZip, destinationZip);
-  }
-  const result = await fetchLiveRate({ originZip, destinationZip, equipmentType: 'VAN' });
-  return result.miles;
+  return getRoadMiles(originZip, destinationZip);
 }
 
 module.exports = { getSpotRate, getMilesForRoute };
