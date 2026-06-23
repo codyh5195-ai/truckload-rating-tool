@@ -3,9 +3,29 @@ const DAT_API_BASE  = process.env.DAT_API_BASE_URL || 'https://api.dat.com/rate-
 const ORS_API_BASE  = 'https://api.openrouteservice.org/v2';
 
 const MARKUP                    = 1.25;
-const STRAIGHT_BOX_RATE_PER_MILE = 2.50;
 const VALID_EQUIPMENT           = ['VAN', 'STRAIGHT_BOX_TRUCK'];
 const ZIP_RE                    = /^\d{5}$/;
+
+// Straight Box Truck mileage-based pricing tiers.
+// Flat rates for short hauls; tapering per-mile rates as distance grows.
+// Returns the final customer quote rounded to the nearest whole dollar.
+function straightBoxQuote(miles) {
+  if (miles <= 100) return { customerQuote: 400, ratePerMile: +(400 / miles).toFixed(2) };
+  if (miles <= 200) return { customerQuote: 500, ratePerMile: +(500 / miles).toFixed(2) };
+
+  let ratePerMile;
+  if      (miles <= 550)  ratePerMile = 2.50;
+  else if (miles <= 625)  ratePerMile = 2.40;
+  else if (miles <= 750)  ratePerMile = 2.375;
+  else if (miles <= 999)  ratePerMile = 2.30;
+  else if (miles <= 1200) ratePerMile = 2.20;
+  else if (miles <= 1300) ratePerMile = 2.10;
+  else if (miles <= 1600) ratePerMile = 2.00;
+  else if (miles <= 2000) ratePerMile = 1.90;
+  else                    ratePerMile = 1.80;
+
+  return { customerQuote: Math.round(miles * ratePerMile), ratePerMile };
+}
 
 // Token cache — persists within a warm serverless instance
 let cachedToken    = null;
@@ -138,10 +158,11 @@ module.exports = async function handler(req, res) {
   try {
     if (equipmentType === 'STRAIGHT_BOX_TRUCK') {
       const miles = await getRoadMiles(originZip, destinationZip);
+      const { customerQuote, ratePerMile } = straightBoxQuote(miles);
 
       return res.json({
-        customerQuote: Math.round(miles * STRAIGHT_BOX_RATE_PER_MILE),
-        ratePerMile:   STRAIGHT_BOX_RATE_PER_MILE,
+        customerQuote,
+        ratePerMile,
         miles,
         currency:      'USD',
         equipmentType,

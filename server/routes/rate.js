@@ -4,7 +4,26 @@ const { getSpotRate, getMilesForRoute } = require('../services/datApi');
 
 const MARKUP = 1.25; // 25% brokerage margin applied before customer sees the DAT-based quote
 
-const STRAIGHT_BOX_RATE_PER_MILE = 2.50;
+// Straight Box Truck mileage-based pricing tiers.
+// Flat rates for short hauls; tapering per-mile rates as distance grows.
+// Returns the final customer quote rounded to the nearest whole dollar.
+function straightBoxQuote(miles) {
+  if (miles <= 100) return { customerQuote: 400, ratePerMile: +(400 / miles).toFixed(2) };
+  if (miles <= 200) return { customerQuote: 500, ratePerMile: +(500 / miles).toFixed(2) };
+
+  let ratePerMile;
+  if      (miles <= 550)  ratePerMile = 2.50;
+  else if (miles <= 625)  ratePerMile = 2.40;
+  else if (miles <= 750)  ratePerMile = 2.375;
+  else if (miles <= 999)  ratePerMile = 2.30;
+  else if (miles <= 1200) ratePerMile = 2.20;
+  else if (miles <= 1300) ratePerMile = 2.10;
+  else if (miles <= 1600) ratePerMile = 2.00;
+  else if (miles <= 2000) ratePerMile = 1.90;
+  else                    ratePerMile = 1.80;
+
+  return { customerQuote: Math.round(miles * ratePerMile), ratePerMile };
+}
 
 const VALID_EQUIPMENT = ['VAN', 'STRAIGHT_BOX_TRUCK'];
 
@@ -28,11 +47,11 @@ router.post('/quote', async (req, res) => {
   try {
     if (equipmentType === 'STRAIGHT_BOX_TRUCK') {
       const miles = await getMilesForRoute({ originZip, destinationZip });
-      const customerQuote = Math.round(miles * STRAIGHT_BOX_RATE_PER_MILE);
+      const { customerQuote, ratePerMile } = straightBoxQuote(miles);
 
       return res.json({
         customerQuote,
-        ratePerMile: STRAIGHT_BOX_RATE_PER_MILE,
+        ratePerMile,
         miles,
         currency: 'USD',
         equipmentType,
